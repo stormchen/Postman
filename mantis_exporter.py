@@ -288,11 +288,11 @@ class MantisExporter:
     
     def export_to_excel(self, issues_data: List[Dict]) -> (bool, Optional[str], int):
         """
-        將資料匯出為 Excel 檔案
-        
+        將資料匯出為 Excel 檔案，並設定欄位顯示/隱藏及新增欄位
+
         Args:
             issues_data: issues 資料列表
-        
+
         Returns:
             (bool, Optional[str], int):
                 是否成功、檔案名稱（若成功）、資料筆數
@@ -301,23 +301,57 @@ class MantisExporter:
         if not issues_data:
             print("⚠ 沒有符合篩選條件的資料，不生成 Excel 檔案")
             return False, None, 0
-        
+
         try:
             # 轉換為 pandas DataFrame
             df = pd.DataFrame(issues_data)
-            
+
             # 生成檔案名稱（包含當日日期）
             today = datetime.now().strftime('%Y%m%d')
             filename = f"Mantis_Weekly_Update_{today}.xlsx"
-            
-            # 匯出為 Excel
+
+            # 先匯出基本的 Excel 檔案
             df.to_excel(filename, index=False, engine='openpyxl')
-            
+
+            # 使用 openpyxl 進行進階格式設定
+            from openpyxl import load_workbook
+            from openpyxl.styles import Font
+
+            wb = load_workbook(filename)
+            ws = wb.active
+
+            # 定義要保留顯示的欄位
+            visible_columns = ['Ticket ID', 'Project', 'Category', 'Summary']
+
+            # 隱藏不需要的欄位
+            for col_num, column in enumerate(df.columns, 1):  # 從第1列開始（openpyxl使用1-based indexing）
+                if column not in visible_columns:
+                    col_letter = ws.cell(row=1, column=col_num).column_letter
+                    ws.column_dimensions[col_letter].hidden = True
+
+            # 加入新欄位：BMC Leader 和 Leader 回報確認狀態
+            # 找到最後一列的列號
+            last_col_num = len(df.columns) + 1
+
+            # 設定新欄位的標題
+            ws.cell(row=1, column=last_col_num, value='BMC Leader')
+            ws.cell(row=1, column=last_col_num + 1, value='Leader 回報確認狀態')
+
+            # 設定新欄位標題的字體（加粗）
+            header_font = Font(bold=True)
+            ws.cell(row=1, column=last_col_num).font = header_font
+            ws.cell(row=1, column=last_col_num + 1).font = header_font
+
+            # 儲存修改後的檔案
+            wb.save(filename)
+
             print(f"✓ Excel 檔案已成功生成：{filename}")
             print(f"  共 {len(df)} 筆資料，{len(df.columns)} 個欄位")
-            
+            print(f"  已隱藏 {len(df.columns) - len(visible_columns)} 個欄位")
+            print(f"  已新增 2 個欄位：BMC Leader, Leader 回報確認狀態")
+
             return True, filename, len(df)
-        
+
         except Exception as e:
             print(f"❌ Excel 匯出失敗：{e}")
             return False, None, 0
