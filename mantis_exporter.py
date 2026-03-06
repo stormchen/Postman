@@ -371,7 +371,7 @@ class MantisExporter:
         
         try:
             msg = EmailMessage()
-            msg['Subject'] = "[自動報表] 每週 EIP Ticket 更新狀態(Testing 2026/3/5)"
+            msg['Subject'] = "[自動報表] 每週 EIP Ticket 更新狀態"
             msg['From'] = self.sender_email
             msg['To'] = self.teams_channel_email
             msg.set_content(f"本週共有 {ticket_count} 筆 Ticket 更新，詳細請見附件 Excel。")
